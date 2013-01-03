@@ -65,23 +65,28 @@ match_bid <- function(weights) {
 # output: a matching dataframe with columns control_id, treatment_id,
 # weights holding weights updated with the bid increment
 # matched where matched is a boolean TRUE or FALSE column
-match_win <- function(weights, bids) {
+match_win <- function(old_matches, bids) {
 	controls <- unique(bids$control_id)
-	matches <- data.frame(control_id=bids$control_id,
-		treatment_id=bids$treatment_id, weight=NA)
+	matches <- list()
+	n_matches <- 0
 	for(cid in controls) {
 		cid_bids <- subset(bids, bids$control_id == cid &
 			!is.na(bids$bid))
-		if(nrow(cid) < 1)
+		if(nrow(cid_bids) < 1)
 			next
 		cid_bids <- cid_bids[order(cid_bids$bid, decreasing=TRUE), ]
 		max_bid <- cid_bids[1, 'bid']
 		if(is.na(max_bid))
 			next
+		n_matches <- n_matches + 1
 		max_tid <- cid_bids[1, 'treatment_id']
-
-
+		new_matches <- subset(old_matches, old_matches$control_id == cid &
+			old_matches$treatment_id == max_tid)
+		if(nrow(new_matches) > 0)
+			new_matches$weight <- new_matches$weight + max_bid
+		matches[[n_matches]] <- new_matches
 	}
+	return(do.call('rbind', matches))
 }
 
 # function: mymatch
