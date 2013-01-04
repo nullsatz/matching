@@ -1,19 +1,25 @@
 #!/usr/bin/Rscript
 
 trial_match <- function() {
-	return(data.frame(
-		bidder=as.character(1:3),
-		item=c('a', 'b'),
-		benefit=runif(6),
-	))
+	trial <- data.frame(bidder=character(12), item=character(12),
+		benefit=runif(12), stringsAsFactors=FALSE)
+	i <- 0
+	for(bidder in as.character(1:4)) {
+		for(item in c('a', 'b', 'c')) {
+			i <- i + 1
+			trial[i, 'bidder'] <- bidder
+			trial[i, 'item'] <- item
+		}
+	}
+	return(trial)
 }
 
 bid_phase <- function(benefits, prices) {
 	bidders <- unique(benefits$bidder)
 	bid_list <- list()
 	nbids <- 0
-	for(bidder in bidders) {
-		bidder_benefits <- subset(benefits, benefits$bidder == bidder)
+	for(current_bidder in bidders) {
+		bidder_benefits <- subset(benefits, benefits$bidder == current_bidder)
 
 		values <- merge(bidder_benefits, prices, by='item')
 		values$value <- values$benefit - values$price
@@ -27,58 +33,74 @@ bid_phase <- function(benefits, prices) {
 			next
 		max_item <- values[1, 'item']
 
-		if(nrow(values) < 2)
+		if(nrow(values) < 2) {
 			max2_value <- 0.0
-		else {
+		} else {
 			max2_value <- values[2, 'value']
 			if(is.na(max2_value))
-				max2_price <- 0.0
+				max2_value <- 0.0
 		}
 		nbids <- nbids + 1
-		bid_list[[nbids]] <- data.frame(bidder=bidder, item=max_item,
-			bid = max1_value - max2_value + 1.0)
+		bid_list[[nbids]] <- data.frame(bidder=current_bidder, item=max_item,
+			bid = max1_value - max2_value + 1.0, stringsAsFactors=FALSE)
 	}
-	if(nbids > 0)
+	if(nbids > 0) {
 		bids <- do.call('rbind', bid_list)
-	else {
+	} else {
 		bids <- data.frame(bidder=character(0), item=character(0),
-			bid=numeric(0))
+			bid=numeric(0), stringsAsFactors=FALSE)
 	}
 	return(bids)
 }
 
 assignment_phase <- function(bids, prices, assignments) {
 	items <- unique(bids$item)
-	winners <- list()
-	nwinners <- 0
-	for(item in items) {
-		item_bids <- subset(bids, !is.na(bids$bid) & bids$item == item)
+	for(current_item in items) {
+		item_bids <- subset(bids, !is.na(bids$bid) & bids$item == current_item)
 
 		if(nrow(item_bids) < 1)
 			next
 
 		item_bids <- item_bids[order(item_bids$bid, decreasing=TRUE), ]
 		max_bid <- item_bids[1, 'bid']
-
-		nwinners <- nwinners + 1
 		max_bidder <- item_bids[1, 'bidder']
 
-		winners[[nwinners]] <- data.frame(bidder=max_bidder, item=item,
-			bid=max_bid)
-		prices$price <- ifelse(prices$item == item &
-			prices$bidder == max_bidder, prices$price + max_bid, prices$price)
-	}
-	if(nwinners > 0)
-		new_winners <- do.call('rbind', winners)
-	else {
-		new_winners <- data.frame(bidder=character(0), item=character(0),
-			bid=numeric(0))
+		prices$price <- ifelse(prices$item == current_item,
+			prices$price + max_bid, prices$price)
+		assignments$assigned <- ifelse(assignments$item == current_item &
+			assignments$bidder == max_bidder, TRUE, assignments$assigned)
+		assignments$assigned <- ifelse(assignments$item == current_item &
+			assignments$bidder != max_bidder, FALSE, assignments$assigned)
 	}
 	round_results <-list()
-	round_results[['winners']] <- new_winners
 	round_results[['prices']] <- prices
-	return(new_winners)
+	round_results[['assignments']] <- assignments
+	return(round_results)
 }
 
-match <- function(weights) {
+all_assigned <- function(assignments) {
+	items <- unique(assignments$items)
+	all_matched <- TRUE
+	for(current_item in items) {
+		matches <- subset(assignments, assignments$item == current_item)
+		if(!any(matches$assigned)) {
+			all_matched <- FALSE
+			break
+		}
+	}
+	return(all_matched)
+}
+
+auction <- function(benefits) {
+	prices <- data.frame(item=unique(benefits$item), price=0, 
+	    stringsAsFactors=FALSE)
+	assignments <- data.frame(bidder=benefits$bidder, item=benefits$item,
+		assigned=FALSE, stringsAsFactors=FALSE)
+	while(!all_assigned(assignments)) {
+		bids <- bid_phase(benefits, prices)
+		new_info <- assignment_phase(bids, prices, assignments)
+		prices <- new_info$prices
+		assignments <- new_info$assignments
+	}
+	return(assignments)
 }
