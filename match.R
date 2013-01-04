@@ -1,102 +1,76 @@
 #!/usr/bin/Rscript
 
-match_make_trial <- function(control_ids=1:3, treatment_ids=c('a', 'b', 'c'),
-	weights=runif(length(control_ids) * length(treatment_ids))) {
-	cid_col <- integer()
-	tid_col <- character()
-	for(tid in treatment_ids) {
-		for(cid in control_ids) {
-			cid_col <- c(cid_col, cid)
-			tid_col <- c(tid_col, tid)
-		}
-	}
-	return(data.frame(control_id=cid_col, treatment_id=tid_col, weight=weights))
+trial_match <- function() {
+	return(data.frame(
+		bidder=as.character(1:3),
+		item=c('a', 'b'),
+		value=runif(6),
+	))
 }
 
-# function: mymatch_bid
-# description: a bidding step of the maximum matching algorithm mymatch
-# input: a dataframe with columns control_id, treatment_id, weight
-# control_id and treatment_id should be integers while weights can be any
-# numeric with some NA entries; these should be the treatments not yet
-# assigned controls
-# output: a dataframe with columns control_id, treatment_id, bid
-# control_id and treatment_id should be integers while bid can be any
-# numeric or NA
-match_bid <- function(weights) {
-	treatments <- unique(weights$treatment_id)
-	bids <- data.frame(control_id=weights$control_id,
-		treatment_id=weights$treatment_id, bid=NA)
-	for(treat in treatments) {
-		controls <- subset(weights, weights$treatment_id == treat)
-		if(nrow(controls) < 1)
+bid_phase <- function(benefits, prices) {
+	bidders <- unique(benefits$bidder)
+	bid_list <- list()
+	nbids <- 0
+	for(bidder in bidders) {
+		bidder_benefits <- subset(benefits, benefits$bidder == bidder)
+		if(nrow(bidder_benefits) < 1)
 			next
-		controls <- controls[order(controls$weight, decreasing=TRUE), ]
+		bidder_benefits <- bidder_benefits[order(bidder_benefits$price,
+			decreasing=TRUE), ]
 
-		max1 <- controls[1, 'weight']
-		if(is.na(max1))
+		max1_price <- bidder_benefits[1, 'price']
+		if(is.na(max1_price))
 			next
+		max_item <- bidder_benefits[1, 'item']
 
-		max_cid <- controls[1, 'control_id']
-		max_tid <- controls[1, 'treatment_id']
-
-		if(nrow(controls) < 2)
-			max2 <- 0.0
+		if(nrow(bidder_benefits) < 2)
+			max2_price <- 0.0
 		else {
-			max2 <- controls[2, 'weight']
-			if(is.na(max2))
-				max2 <- 0.0
+			max2_price <- controls[2, 'price']
+			if(is.na(max2_price))
+				max2_price <- 0.0
 		}
-
-		bids$bid <- ifelse(
-			bids$control_id == max_cid & bids$treatment_id == max_tid,
-			max1 - max2 + 1.0, bids$bid)
+		nbids <- nbids + 1
+		bid_list[[nbids]] <- data.frame(bidder=bidder, item=max_item,
+			bid = max1_price - max2_price + 1.0)
+	}
+	if(nbids > 0)
+		bids <- do.call('rbind', bid.list)
+	else {
+		bids <- data.frame(bidder=character(0), item=character(0),
+			bid=numeric(0))
 	}
 	return(bids)
 }
 
-# function: mymatch_win
-# description: a step of the maximum matching algorithm mymatch in which winning
-# bidders are chosen after a bidding step
-# input: weights, a dataframe with columns control_id, treatment_id, weight
-# control_id and treatment_id should be integers while weights can be any
-# bids, a dataframe with columns control_id, treatment_id, bid
-# control_id and treatment_id should be integers while bid can be any
-# numeric or NA
-# output: a matching dataframe with columns control_id, treatment_id,
-# weights holding weights updated with the bid increment
-# matched where matched is a boolean TRUE or FALSE column
-match_win <- function(old_matches, bids) {
-	controls <- unique(bids$control_id)
-	matches <- list()
-	n_matches <- 0
-	for(cid in controls) {
-		cid_bids <- subset(bids, bids$control_id == cid &
-			!is.na(bids$bid))
-		if(nrow(cid_bids) < 1)
+assignment_phase <- function(assignments, bids) {
+	items <- unique(bids$item)
+	winners <- list()
+	nwinners <- 0
+	for(item in items) {
+		item_bids <- subset(bids, !is.na(bids$bid) & bids$item == item)
+
+		if(nrow(item_bids) < 1)
 			next
-		cid_bids <- cid_bids[order(cid_bids$bid, decreasing=TRUE), ]
-		max_bid <- cid_bids[1, 'bid']
-		if(is.na(max_bid))
-			next
-		n_matches <- n_matches + 1
-		max_tid <- cid_bids[1, 'treatment_id']
-		new_matches <- subset(old_matches, old_matches$control_id == cid &
-			old_matches$treatment_id == max_tid)
-		if(nrow(new_matches) > 0)
-			new_matches$weight <- new_matches$weight + max_bid
-		matches[[n_matches]] <- new_matches
+
+		item_bids <- item_bids[order(item_bids$bid, decreasing=TRUE), ]
+		max_bid <- item_bids[1, 'bid']
+
+		nwinners <- nwinners + 1
+		max_bidder <- item_bids[1, 'bidder']
+
+		winners[[nwinners]] <- data.frame(bidder=max_bidder, item=item,
+			bid=max_bid)
 	}
-	return(do.call('rbind', matches))
+	if(nwinners > 0)
+		new_winners <- do.call('rbind', winners)
+	else {
+		new_winners <- data.frame(bidder=character(0), item=character(0),
+			bid=numeric(0))
+	}
+	return(new_winners)
 }
 
-# function: mymatch
-# description: produces a maximum matching from a dataframe of edge weights
-# until all treatments have been assigned a control, the function will
-# alternate between calling mymatch_bid and mymatch_win
-# input: a dataframe with columns control_id, treatment_id, weight
-# control_id and treatment_id should be integers while weights can be any
-# numeric with some NA entries
-# output: a maximum matching dataframe with columns control_id, treatment_id,
-# matched where matched is a boolean TRUE or FALSE column
 match <- function(weights) {
 }
