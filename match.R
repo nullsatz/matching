@@ -15,11 +15,13 @@ trial_match <- function() {
 }
 
 possible_matches <- function(bidders, items) {
-	if(length(bidders) == 1) {
-		return(paste(bidders[1], items, sep=','))
+	a <- items
+	b <- bidders
+	if(length(bidders) < length(items)) {
+		a <- bidders
+		b <- items
 	}
-	small_matches <- possible_matches(bidders[2:length(bidders)], items)
-	return(paste(bidders[1], small_matches, sep=','))
+	cprod <- expand.grid(a, b)
 }
 
 all_values <- function(benefits) {
