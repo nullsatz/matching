@@ -14,6 +14,24 @@ trial_match <- function() {
 	return(trial)
 }
 
+possible_matches <- function(bidders, items) {
+	if(length(bidders) == 1) {
+		return(paste(bidders[1], items, sep=','))
+	}
+	small_matches <- possible_matches(bidders[2:length(bidders)], items)
+	return(paste(bidders[1], small_matches, sep=','))
+}
+
+all_values <- function(benefits) {
+	bidders <- benefits$bidder
+	items <- benefits$item
+	possible_assignments <- 
+	for(cb in bidders) {
+		for(ci in items) {
+		}
+	}
+}
+
 bid_phase <- function(benefits, prices) {
 	bidders <- unique(benefits$bidder)
 	bid_list <- list()
@@ -78,17 +96,15 @@ assignment_phase <- function(bids, prices, assignments) {
 	return(round_results)
 }
 
-all_assigned <- function(assignments) {
-	items <- unique(assignments$items)
-	all_matched <- TRUE
+unmatched <- function(assignments) {
+	items <- unique(assignments$item)
 	for(current_item in items) {
 		matches <- subset(assignments, assignments$item == current_item)
 		if(!any(matches$assigned)) {
-			all_matched <- FALSE
-			break
+			return(TRUE)
 		}
 	}
-	return(all_matched)
+	return(FALSE)
 }
 
 auction <- function(benefits) {
@@ -96,7 +112,7 @@ auction <- function(benefits) {
 	    stringsAsFactors=FALSE)
 	assignments <- data.frame(bidder=benefits$bidder, item=benefits$item,
 		assigned=FALSE, stringsAsFactors=FALSE)
-	while(!all_assigned(assignments)) {
+	while(unmatched(assignments)) {
 		bids <- bid_phase(benefits, prices)
 		new_info <- assignment_phase(bids, prices, assignments)
 		prices <- new_info$prices
