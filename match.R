@@ -14,26 +14,6 @@ trial_match <- function() {
 	return(trial)
 }
 
-possible_matches <- function(bidders, items) {
-	a <- items
-	b <- bidders
-	if(length(bidders) < length(items)) {
-		a <- bidders
-		b <- items
-	}
-	cprod <- expand.grid(a, b)
-}
-
-all_values <- function(benefits) {
-	bidders <- benefits$bidder
-	items <- benefits$item
-	possible_assignments <- 
-	for(cb in bidders) {
-		for(ci in items) {
-		}
-	}
-}
-
 bid_phase <- function(benefits, prices) {
 	bidders <- unique(benefits$bidder)
 	bid_list <- list()
