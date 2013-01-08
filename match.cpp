@@ -2,35 +2,37 @@
 #include<stdlib.h>
 #include<string.h>
 
-#include<Rcpp.h>
-using namespace Rcpp;
+#include<RcppArmadillo.h>
 
-DataFrame placeBids(DataFrame benefits, DataFrame prices) {
+Rcpp::NumericMatrix placeBids(Rcpp::NumericMatrix benefits,
+	Rcpp::NumericMatrix prices) {
 	return NULL;
 }
 
-DataFrame assignWinners(DataFrame bids, DataFrame prices) {
+Rcpp::NumericMatrix assignWinners(Rcpp::NumericMatrix bids,
+	Rcpp::NumericMatrix prices) {
 	return NULL;
 }
 
-bool unmatched(DataFrame assignments) {
+bool unmatched(Rcpp::NumericMatrix assignments) {
 	return false;
 }
 
 RcppExport SEXP auction(SEXP benefits) {
-	DataFrame inBenefits(benefits);
-	int nrows = inBenefits.nrows();
+	Rcpp::NumericMatrix inBenefits(benefits);
 
-	Rcout << "n_rows = " << nrows << std::endl;
+	int
+		nrows = inBenefits.nrow(),
+		ncols = inBenefits.ncol();
 
-	std::vector<double> u = Rcpp::as< std::vector<double> >(inBenefits["u"]);
+	arma::mat X(inBenefits.begin(), nrows, ncols, false);
 
 	for(int i = 0; i < nrows; i++) {
-		std::ostringstream convert;
-		convert << u[i];
-		Rcout << convert.str() << std::endl;
-
+		Rcpp::NumericVector rowi(inBenefits(i, Rcpp::_));
+		for(int j = 0; j < ncols; j++)
+			Rcpp::Rcout << rowi[j] << " ";
+		Rcpp::Rcout << std::endl;
 	}
-
+	Rcpp::Rcout << arma::max(X, 0) << std::endl;
 	return inBenefits;
 }

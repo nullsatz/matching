@@ -1,5 +1,7 @@
 #!/usr/bin/Rscript
 
 dyn.load('match.so')
-q <- data.frame(u=1:3)
+q <- matrix(runif(25), 5)
+q[4, ] <- NA
+print(q)
 z <- .Call('auction', q)
