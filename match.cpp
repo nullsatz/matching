@@ -4,35 +4,45 @@
 
 #include<RcppArmadillo.h>
 
-Rcpp::NumericMatrix placeBids(Rcpp::NumericMatrix benefits,
-	Rcpp::NumericMatrix prices) {
+using namespace std;
+using namespace Rcpp;
+using namespace arma;
+
+NumericMatrix placeBids(mat benefits, mat prices) {
 	return NULL;
 }
 
-Rcpp::NumericMatrix assignWinners(Rcpp::NumericMatrix bids,
-	Rcpp::NumericMatrix prices) {
+NumericMatrix assignWinners(mat bids, mat prices) {
 	return NULL;
 }
 
-bool unmatched(Rcpp::NumericMatrix assignments) {
-	return false;
+bool unmatched(umat assignments) {
+	// v may compete with R for memory (?)
+	Row<uword> colMax = max(assignments);
+	uword any = min(colMax);
+	return any == 0;
 }
 
+// rows: bidders; cols: items (?)
 RcppExport SEXP auction(SEXP benefits) {
-	Rcpp::NumericMatrix inBenefits(benefits);
+	NumericMatrix inBenefits(benefits);
 
 	int
-		nrows = inBenefits.nrow(),
-		ncols = inBenefits.ncol();
+		nBidders = inBenefits.nrow(),
+		nItems = inBenefits.ncol();
 
-	arma::mat X(inBenefits.begin(), nrows, ncols, false);
+	mat bene(inBenefits.begin(), nBidders, nItems, false);
+	umat assi = zeros<umat>(nBidders, nItems);
+	
+	vec prices = zeros<vec>(nItems);
 
-	for(int i = 0; i < nrows; i++) {
-		Rcpp::NumericVector rowi(inBenefits(i, Rcpp::_));
-		for(int j = 0; j < ncols; j++)
-			Rcpp::Rcout << rowi[j] << " ";
-		Rcpp::Rcout << std::endl;
+	int iterations = 0;
+	while(unmatched(assi)) {
+		assi(iterations, iterations) = 1;
+		iterations++;
+		Rcout << "iterations: " << iterations << endl;
+		// assi = ones<mat>(nBidders, nItems);
 	}
-	Rcpp::Rcout << arma::max(X, 0) << std::endl;
-	return inBenefits;
+	
+	return wrap(assi);
 }

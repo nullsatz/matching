@@ -5,3 +5,5 @@ q <- matrix(runif(25), 5)
 q[4, ] <- NA
 print(q)
 z <- .Call('auction', q)
+print('====')
+print(z)
