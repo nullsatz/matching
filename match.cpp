@@ -8,22 +8,28 @@ using namespace std;
 using namespace Rcpp;
 using namespace arma;
 
-NumericMatrix placeBids(mat benefits, mat prices) {
-	return NULL;
+mat placeBids(mat benefits, vec prices) {
+	uword
+		nBidders = benefits.n_rows,
+		nItems = benefits.n_cols;
+	mat bids(nBidders, 3);
+	bids(0, 1) = -1.0;
+	for(int bidder = 0; bidder < nBidders; bidder++) {
+		mat values = benefits.row(bidder) - prices;
+		double maxValue = max(values); // change this to get the index
+	}
 }
 
-NumericMatrix assignWinners(mat bids, mat prices) {
-	return NULL;
+void assignWinners(mat bids, mat prices, mat assignments) {
 }
 
 bool unmatched(umat assignments) {
-	// v may compete with R for memory (?)
 	Row<uword> colMax = max(assignments);
 	uword any = min(colMax);
 	return any == 0;
 }
 
-// rows: bidders; cols: items (?)
+// rows: bidders; cols: items
 RcppExport SEXP auction(SEXP benefits) {
 	NumericMatrix inBenefits(benefits);
 
@@ -32,16 +38,18 @@ RcppExport SEXP auction(SEXP benefits) {
 		nItems = inBenefits.ncol();
 
 	mat bene(inBenefits.begin(), nBidders, nItems, false);
-	umat assi = zeros<umat>(nBidders, nItems);
-	
-	vec prices = zeros<vec>(nItems);
+	mat bids(nBidders, nItems);
+	umat assi(nBidders, nItems);
+	vec prices(nItems);
 
 	int iterations = 0;
 	while(unmatched(assi)) {
-		assi(iterations, iterations) = 1;
+		mat bids = placeBids(bene, prices, bids);
+		Rcout << wrap(bids) << endl;
+//		assignWinners(bids, prices, assi);
 		iterations++;
 		Rcout << "iterations: " << iterations << endl;
-		// assi = ones<mat>(nBidders, nItems);
+		assi = ones<mat>(nBidders, nItems);
 	}
 	
 	return wrap(assi);
