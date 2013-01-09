@@ -52,7 +52,7 @@ vec getMaxItemBid(uword item, mat bids) {
 	return winner;
 }
 
-void assignWinners(mat bids, rowvec prices, umat assignments) {
+void assignWinners(mat bids, rowvec prices, umat & assignments) {
 	uword
 		winnerIdx = 0,
 		nItems = prices.size();
