@@ -1,5 +1,9 @@
 #!/usr/bin/Rscript
 
+args <- as.numeric(commandArgs(trailingOnly=T))
+nBidders <- args[1]
+nItems <- args[2]
+
 dyn.load('match.so')
-q <- matrix(runif(6), 3)
-z <- .Call('auction', q)
+q <- matrix(runif(nBidders * nItems), nBidders)
+system.time(z <- .Call('auction', q))

@@ -1,16 +1,10 @@
 #!/usr/bin/Rscript
 
-trial_match <- function() {
-	trial <- data.frame(bidder=character(12), item=character(12),
-		benefit=runif(12), stringsAsFactors=FALSE)
-	i <- 0
-	for(bidder in as.character(1:4)) {
-		for(item in c('a', 'b', 'c')) {
-			i <- i + 1
-			trial[i, 'bidder'] <- bidder
-			trial[i, 'item'] <- item
-		}
-	}
+trial_match <- function(nBidders, nItems) {
+	trial <- data.frame(bidder=character(nBidders), item=character(nItems),
+		benefit=runif(nBidders * nItems), stringsAsFactors=FALSE)
+	trial$bidder <- as.character(sapply(1:nBidders, rep, times=nItems))
+	trial$items <- rep(as.character(1:nItems), nBidders)
 	return(trial)
 }
 

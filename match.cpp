@@ -68,7 +68,6 @@ void assignWinners(mat bids, rowvec prices, umat & assignments) {
 		assignments.col(item).fill(0);
 		assignments(winnerIdx, item) = 1;
 	}
-	Rcout << assignments << endl;
 }
 
 bool unmatched(umat assignments) {
@@ -90,18 +89,9 @@ RcppExport SEXP auction(SEXP benefits) {
 	umat assi(nBidders, nItems);
 	rowvec prices(nItems);
 
-	Rcout << bene << endl;
-
 	while(unmatched(assi)) {
 		bids = placeBids(bene, prices);
-
-		Rcout << bids << endl;
-		
 		assignWinners(bids, prices, assi);
-
-		Rcout << assi << endl;
-
-		break;
 	}
 	return wrap(assi);
 }
