@@ -30,7 +30,45 @@ mat placeBids(mat benefits, rowvec prices) {
 	return bids;
 }
 
-void assignWinners(mat bids, mat prices, mat assignments) {
+vec getMaxItemBid(uword item, mat bids) {
+	uword
+		nBidders = bids.n_rows,
+		maxIdx = nBidders;
+	double
+		currentBid = 0.0, maxBid = -1.0;
+
+	for(int bidder = 0; bidder < nBidders; bidder++) {
+		if(bids(bidder, 0) == item) {
+			currentBid = bids(bidder, 1);
+			if(currentBid > maxBid) {
+				maxIdx = bidder;
+				maxBid = currentBid;
+			}
+		}
+	}
+	vec winner(2);
+	winner(0) = maxIdx;
+	winner(1) = maxBid;
+	return winner;
+}
+
+void assignWinners(mat bids, rowvec prices, umat assignments) {
+	uword
+		winnerIdx = 0,
+		nItems = prices.size();
+	double winningBid;
+
+	for(int item = 0; item < nItems; item++) {
+		vec winner = getMaxItemBid(item, bids);
+		winnerIdx = winner(0);
+		winningBid = winner(1);
+		if(winningBid < 0.0)
+			continue;
+		prices(item) += winningBid;
+		assignments.col(item).fill(0);
+		assignments(winnerIdx, item) = 1;
+	}
+	Rcout << assignments << endl;
 }
 
 bool unmatched(umat assignments) {
@@ -56,8 +94,13 @@ RcppExport SEXP auction(SEXP benefits) {
 
 	while(unmatched(assi)) {
 		bids = placeBids(bene, prices);
+
 		Rcout << bids << endl;
-//		assignWinners(bids, prices, assi);
+		
+		assignWinners(bids, prices, assi);
+
+		Rcout << assi << endl;
+
 		break;
 	}
 	return wrap(assi);
